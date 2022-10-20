@@ -1,0 +1,148 @@
+#include "stdlib.func";
+
+global cell global_votes;
+global cell proposals;
+global int total_votes;
+
+const slice dummy_address = "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c"a;
+
+() load_data () impure {
+  slice storage = get_data().begin_parse();
+  global_votes = storage~load_dict();
+  proposals = storage~load_dict();
+  total_votes = storage~load_uint(256);
+}
+
+() save_data () impure {
+  set_data(begin_cell()
+                       .store_dict(global_votes)
+                       .store_dict(proposals)
+                       .store_uint(total_votes, 256)
+           .end_cell()
+           );
+}
+
+int get_voting_power (cell votes, slice address) impure {
+  (_, slice value, _, int found?) = votes.pfxdict_get?(address.slice_bits(), address);
+  ifnot found? {
+    return 0;
+  }
+  return value~load_uint(256);
+}
+
+(cell,()) set_voting_power (cell votes, slice address, int amount) impure {
+  ;; will throw if amount is negative
+  (cell votes', int success?) = votes.pfxdict_set?(address.slice_bits(), address, 
+                                                   begin_cell().store_uint(amount, 256).end_cell().begin_parse());
+  throw_unless(999, success?);
+  return (votes', ());
+}
+
+(cell,()) transfer_voting_power (cell votes, slice from, slice to, int amount) impure {
+  int from_votes = get_voting_power(votes, from);
+  int to_votes = get_voting_power(votes, to);
+  
+  from_votes -= amount;
+  to_votes += amount;
+
+  ;; No need to check that result from_votes is positive: set_voting_power will throw for negative votes
+  ;; throw_unless(998, from_votes > 0);
+  
+  votes~set_voting_power(from, from_votes);
+  votes~set_voting_power(to, to_votes);
+  return (votes,());
+}
+
+() execute_proposal (cell proposal) impure {
+  var data = proposal.begin_parse();
+  send_raw_message(data~load_ref(), data~load_uint(8));
+}
+
+() main (cell in_msg_full, slice in_msg_body) {
+  slice cs = in_msg_full.begin_parse();
+  int flags = cs~load_uint(4);
+
+  if (flags & 1) { ;; ignore all bounced messages
+      return ();
+  }
+  slice sender_address = cs~load_msg_addr();
+
+  load_data();
+  
+  int op = in_msg_body~load_uint(32);
+  int query_id = in_msg_body~load_uint(64);
+  
+  if(op == 0x187abeff) { ;; add order
+    cell proposal = in_msg_body~load_ref();
+    int id = cell_hash(proposal);
+    (_, int found?) = proposals.udict_get?(256, id);
+    throw_if(105, found?); ;; already registered
+    cell votes = global_votes;
+    int voting_power = get_voting_power(votes, sender_address);
+    int confirm_votes = voting_power;
+    if (confirm_votes >= muldiv(total_votes, 2, 3) ) {
+      execute_proposal(proposal);
+    } else {
+      votes~transfer_voting_power(sender_address, dummy_address, voting_power);
+      cell proposals' = proposals.udict_set_builder(256, id,
+           begin_cell().store_ref(proposal).store_ref(votes).store_uint(confirm_votes, 256));
+      proposals = proposals';
+    }
+  }
+  if(op == 0x77345522) { ;; vote for order
+    cell proposal = in_msg_body~load_ref();
+    int id = cell_hash(proposal);
+    (slice voting, int found?) = proposals.udict_get?(256, id);
+    ;; throw_unless(105, found?); unneccessary
+    (cell proposal, cell votes, int confirm_votes) = (voting~load_ref(), voting~load_ref(), voting~load_uint(256));
+    int voting_power = get_voting_power(votes, sender_address);
+    confirm_votes += voting_power;
+    if (confirm_votes >= muldiv(total_votes, 2, 3) ) {
+      execute_proposal(proposal);
+    } else {
+      votes~transfer_voting_power(sender_address, dummy_address, voting_power);
+      cell proposals' = proposals.udict_set_builder(256, id,
+           begin_cell().store_ref(proposal).store_ref(votes).store_uint(confirm_votes, 256));
+      proposals = proposals';
+    }
+  }
+  if(op == 0x63a893dd) { ;; move votes 
+    int voting_power = get_voting_power(global_votes, sender_address);
+    (cell gv', _) = transfer_voting_power(global_votes, sender_address, in_msg_body~load_msg_addr(), in_msg_body~load_int(256));
+    global_votes = gv';
+  }
+  save_data();
+}
+
+int get_votes(int wc, int address) method_id {
+  load_data();
+  return get_voting_power(global_votes, begin_cell().store_uint(4, 3).store_int(wc, 8).store_uint(address, 256).end_cell().begin_parse());
+}
+
+cell get_initial_storage() method_id(3333) {
+    slice owner1 = "EQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqB2N"a;
+    slice owner2 = "EQAhE3sLxHZpsyZ_HecMuwzvXHKLjYx4kEUehhOy2JmCcHCT"a;
+    slice owner3 = "EQCtiv7PrMJImWiF2L5oJCgPnzp-VML2CAt5cbn1VsKAxLiE"a;
+    slice owner4 = "EQAAFhjXzKuQ5N0c96nsdZQWATcJm909LYSaCAvWFxVJP80D"a;
+    slice owner5 = "EQCjk1hh952vWaE9bRguFkAhDAL5jj3xj9p0uPWrFBq_GEMS"a;
+    slice owner6 = "EQDrLq-X6jKZNHAScgghh0h1iog3StK71zn8dcmrOj8jPWRA"a;
+    
+    cell votes = null();
+    (cell votes, int success?) = votes.pfxdict_set?(owner1.slice_bits(), owner1, 
+                                  begin_cell().store_uint(10000, 256).end_cell().begin_parse());
+    (cell votes, int success?) = votes.pfxdict_set?(owner2.slice_bits(), owner2, 
+                                  begin_cell().store_uint(10000, 256).end_cell().begin_parse());
+    (cell votes, int success?) = votes.pfxdict_set?(owner3.slice_bits(), owner3, 
+                                  begin_cell().store_uint(10000, 256).end_cell().begin_parse());
+    (cell votes, int success?) = votes.pfxdict_set?(owner4.slice_bits(), owner4, 
+                                  begin_cell().store_uint(10000, 256).end_cell().begin_parse());
+    (cell votes, int success?) = votes.pfxdict_set?(owner5.slice_bits(), owner5, 
+                                  begin_cell().store_uint(10000, 256).end_cell().begin_parse());
+    (cell votes, int success?) = votes.pfxdict_set?(owner6.slice_bits(), owner6, 
+                                  begin_cell().store_uint(10000, 256).end_cell().begin_parse());
+    global_votes = votes;
+    proposals = null();
+    total_votes = 60000;
+    save_data();
+    return get_data();
+}

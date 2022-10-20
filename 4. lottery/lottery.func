@@ -1,0 +1,42 @@
+{-
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  Contract contains intentional bugs, do not use in production
+
+-}
+
+#include "stdlib.func";
+
+() recv_internal (msg_value, in_msg_full, in_msg_body) {
+    throw_unless(1111, msg_value == 1000000000);
+
+    slice cs = in_msg_full.begin_parse();
+    int flags = cs~load_uint(4);
+
+    if (flags & 1) { ;; ignore all bounced messages
+        return ();
+    }
+    slice sender_address = cs~load_msg_addr();
+    
+    int seed = cur_lt();
+    int seed_size = min(in_msg_body.slice_bits(), 128);
+    
+    if(in_msg_body.slice_bits() > 0) {
+        seed += in_msg_body~load_uint(seed_size);
+    }
+    set_seed(seed);
+    var balance = get_balance().pair_first();
+    if(balance > 5000 * 1000000000) {
+      ;; forbid too large jackpot
+      raw_reserve( balance - 5000 * 1000000000, 0);
+    }
+    if(rand(10000) == 7777) {
+      var msg = begin_cell()
+        .store_uint(0x18, 6)
+        .store_slice(sender_address)
+        .store_coins(0)
+        .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+      .end_cell();
+      send_raw_message(msg, 2 + 128);
+    }
+}

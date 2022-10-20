@@ -1,0 +1,31 @@
+#!/usr/bin/fift -s
+"TonUtil.fif" include
+"Asm.fif" include
+
+true =: bounce
+"EQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqB2N" bounce parse-load-address =: bounce 2=: addr_1
+"EQAhE3sLxHZpsyZ_HecMuwzvXHKLjYx4kEUehhOy2JmCcHCT" bounce parse-load-address =: bounce 2=: addr_2
+
+<{
+  SETCP0 ACCEPT
+  "mutual-funds-code.fif" include PUSHREF SETCODE
+  0 PUSHINT
+}>s =: contract_code
+
+<b addr_1 Addr, addr_2 Addr, b> =: contract_storage
+
+<b b{00110} s, <b contract_code s, b> ref, contract_storage ref, b>
+dup =: state_init
+
+dup hashu 0 swap 2constant contract_address
+."new mutual-funds wallet address = " contract_address .addr cr
+
+."Non-bounceable address (for init): " contract_address 7 .Addr cr
+."Bounceable address (for later access): " contract_address 6 .Addr cr
+
+<b b> <s =: init_message
+<b b{1000100} s, contract_address addr, b{000010} s, state_init <s s, b{0} s, init_message s, b>
+2 boc+>B
+
+"query-init-mutual-funds.boc" tuck B>file
+."(Saved mutual-funds contract creating query to file " type .")" cr

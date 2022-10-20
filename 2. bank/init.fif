@@ -1,0 +1,33 @@
+#!/usr/bin/fift -s
+"TonUtil.fif" include
+"Asm.fif" include
+
+true =: bounce
+<{
+  SETCP0 ACCEPT
+  "bank-code.fif" include PUSHREF SETCODE
+  0 PUSHINT
+}>s =: contract_code
+
+<b 0 Gram, b> <s // empty value
+0
+dictnew
+256
+udict! 
+drop  =: contract_storage
+
+<b b{00110} s, <b contract_code s, b> ref, contract_storage ref, b>
+dup =: state_init
+
+dup hashu 0 swap 2constant contract_address
+."new bank wallet address = " contract_address .addr cr
+
+."Non-bounceable address (for init): " contract_address 7 .Addr cr
+."Bounceable address (for later access): " contract_address 6 .Addr cr
+
+<b b> <s =: init_message
+<b b{1000100} s, contract_address addr, b{000010} s, state_init <s s, b{0} s, init_message s, b>
+2 boc+>B
+
+"query-init-bank.boc" tuck B>file
+."(Saved init-bank contract creating query to file " type .")" cr

@@ -1,0 +1,28 @@
+#!/usr/bin/fift -s
+"TonUtil.fif" include
+"Asm.fif" include
+
+true =: bounce
+<{
+  SETCP0 ACCEPT
+  "dao-code.fif" include PUSHREF SETCODE
+  0 PUSHINT
+}>s =: contract_code
+
+3333 "dao-code.fif" include <s 1 runvmx drop =: contract_storage
+
+<b b{00110} s, <b contract_code s, b> ref, contract_storage ref, b>
+dup =: state_init
+
+dup hashu 0 swap 2constant contract_address
+."new dao address = " contract_address .addr cr
+
+."Non-bounceable address (for init): " contract_address 7 .Addr cr
+."Bounceable address (for later access): " contract_address 6 .Addr cr
+
+<b b> <s =: init_message
+<b b{1000100} s, contract_address addr, b{000010} s, state_init <s s, b{0} s, init_message s, b>
+2 boc+>B
+
+"query-init-dao.boc" tuck B>file
+."(Saved dao contract creating query to file " type .")" cr

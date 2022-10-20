@@ -1,0 +1,45 @@
+{-
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  Contract contains intentional bugs, do not use in production
+
+-}
+
+
+#include "stdlib.func";
+
+;; storage#_ addr1:MsgAddress addr2:MsgAddress = Storage;
+
+() execute (cell) impure asm "c5 POPCTR";
+
+global slice addr1;
+global slice addr2;
+
+() load_data () impure {
+  slice ds = get_data().begin_parse();
+  addr1 = ds~load_msg_addr();
+  addr2 = ds~load_msg_addr();
+}
+
+() authorize (sender) inline {
+  throw_unless(187, equal_slice_bits(sender, addr1) | equal_slice_bits(sender, addr2));
+}
+
+() recv_internal (in_msg_full, in_msg_body) {
+    if (in_msg_body.slice_empty?()) { ;; ignore empty messages
+        return ();
+    }
+    slice cs = in_msg_full.begin_parse();
+    int flags = cs~load_uint(4);
+
+    if (flags & 1) { ;; ignore all bounced messages
+        return ();
+    }
+    slice sender_address = cs~load_msg_addr();
+
+    load_data();
+    authorize(sender_address);
+    
+    cell request = in_msg_body~load_ref();
+    execute(request);
+}
