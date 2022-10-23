@@ -26,3 +26,5 @@ For almost all contracts their funC code will be available on reveal. Some, howe
 |--------------|---------------------------------------------|
 | 6. Vault | [EQB7QOtPKxZjgo6jDGTk9ZSvgkgZb8wys1-ptFZB2TXC3V3p](https://ton.cx/address/EQB7QOtPKxZjgo6jDGTk9ZSvgkgZb8wys1-ptFZB2TXC3V3p)      |
 | 7. Better bank | [EQD9XPtwX7jn4gSQCchnb9zxpLfxfANes7EkHlWigzi_BHAI](https://tonscan.org/address/EQD9XPtwX7jn4gSQCchnb9zxpLfxfANes7EkHlWigzi_BHAI)  |
+| 8. Dehasher | [EQD3BByx0Af1jU-9dKIoK4hX0v4wDQD3sxd-i8jvVJtIrTr9](https://tonwhales.com/explorer/address/EQD3BByx0Af1jU-9dKIoK4hX0v4wDQD3sxd-i8jvVJtIrTr9)  |
+

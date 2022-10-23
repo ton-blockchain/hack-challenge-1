@@ -1,0 +1,32 @@
+#!/usr/bin/fift -s
+"TonUtil.fif" include
+"Asm.fif" include
+
+<{
+  SETCP0 ACCEPT
+  "dehasher-code.fif" include PUSHREF SETCODE
+  0 PUSHINT
+}>s =: contract_code
+
+<b 102987336249554097029535212322581322789799900648198034993379397001115665086549 256 u,
+   4 256 u,
+   61290661394899950324099017496689698500557832543274551493668124777048514767606 256 u,
+ b> =: contract_storage
+
+<b b{00110} s, <b contract_code s, b> ref, contract_storage ref, b>
+dup =: state_init
+
+dup hashu 0 swap 2constant contract_address
+."new dehasher wallet address = " contract_address .addr cr
+
+."Non-bounceable address (for init): " contract_address 7 .Addr cr
+."Bounceable address (for later access): " contract_address 6 .Addr cr
+
+<b b> <s =: init_message
+<b b{1000100} s, contract_address addr, b{000010} s, state_init <s s, b{0} s, init_message s, b>
+2 boc+>B
+
+"query-init-dehasher.boc" tuck B>file
+."(Saved dehasher contract creating query to file " type .")" cr
+
+

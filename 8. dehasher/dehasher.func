@@ -1,0 +1,82 @@
+#include "stdlib.func";
+
+;; This asm actually do nothing on TVM level, but force compiler to think that 
+;; typeless continuation is actually int-to-slice function
+(int -> slice) cast_to_I2S(cont c) asm "NOP";
+
+;; Put cell to c5 (we need it to clean register)
+() set_c5 (cell) impure asm "c5 POPCTR";
+
+
+;; This asm gets two argument: int and function
+;; Then it passes it to "wrapper" and execute wrapper with "2 1 CALLXARGS"
+;; that means move to wrapper stack two elements and then return 1 element.
+;; Wrapper itself try to execute function but catches exceptions, also it checks that
+;; after execution there is at least one element on stack via `DEPTH 2 THROWIFNOT`.
+;; If function didn't throw, wrapper returns it's result, otherwise it returns NULL from CATCH statement
+slice try_execute(int image, (int -> slice) dehasher) asm "<{ TRY:<{ EXECUTE DEPTH 2 THROWIFNOT }>CATCH<{ 2DROP NULL }> }>CONT"   "2 1 CALLXARGS";
+
+
+;; We do not trust function which we test: it may try to send messages or do other nasty things
+;; so we wrap it to the function which save register values prior to execution
+;; and restores them after
+slice safe_execute(int image, (int -> slice) dehasher) inline {
+  cell c4 = get_data();
+  
+  slice preimage = try_execute(image, dehasher);
+  
+  ;; restore c4 if dehasher spoiled it
+  set_data(c4); 
+  ;; clean actions if dehasher spoiled them
+  set_c5(begin_cell().end_cell());
+
+  return preimage;
+} 
+
+;; read test vectors from storage
+tuple get_test_vectors() inline {
+  slice storage = get_data().begin_parse();
+  tuple list = null();
+  int break = false;
+  do {
+    if(storage.slice_bits() > 0) {
+      list = cons(storage~load_uint(256), list);
+    } else {
+      if(storage.slice_refs()) {
+        storage = storage.preload_ref().begin_parse();
+      } else {
+        break = true;
+      }
+    }
+  } until(break);
+  return list;
+}
+
+() main (cell in_msg_full, slice in_msg_body) {
+
+  slice cs = in_msg_full.begin_parse();
+  int flags = cs~load_uint(4);
+
+  if (flags & 1) { ;; ignore all bounced messages
+      return ();
+  }
+  tuple test_vectors = get_test_vectors();
+  slice sender_address = cs~load_msg_addr();
+  cell dehasher_code = in_msg_body~load_ref();
+  var dehasher = cast_to_I2S(dehasher_code.begin_parse().bless());
+  do {
+    (var test, test_vectors) = uncons(test_vectors);
+    var preimage = safe_execute(test, dehasher);
+    throw_unless(777, string_hash(preimage) == test); 
+  } until (test_vectors.null?());
+
+  ;; And the winner is ... sender_address!
+  ;; Can't touch this.
+        var msg = begin_cell()
+        .store_uint(0x18, 6)
+        .store_slice(sender_address)
+        .store_coins(0)
+        .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+      .end_cell();
+      send_raw_message(msg, 2 + 128);
+}
