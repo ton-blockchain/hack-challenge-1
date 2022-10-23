@@ -25,3 +25,4 @@ For almost all contracts their funC code will be available on reveal. Some, howe
 |  Task   | Address |
 |--------------|---------------------------------------------|
 | 6. Vault | [EQB7QOtPKxZjgo6jDGTk9ZSvgkgZb8wys1-ptFZB2TXC3V3p](https://ton.cx/address/EQB7QOtPKxZjgo6jDGTk9ZSvgkgZb8wys1-ptFZB2TXC3V3p)      |
+| 7. Better bank | [EQD9XPtwX7jn4gSQCchnb9zxpLfxfANes7EkHlWigzi_BHAI](https://tonscan.org/address/EQD9XPtwX7jn4gSQCchnb9zxpLfxfANes7EkHlWigzi_BHAI)  |
