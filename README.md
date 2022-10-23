@@ -1,10 +1,10 @@
 # Rules
 
-This contest is dedicated to finding vulnerabilities in smart-contracts. To be able to participate you need to have couple of TONs, know how to compose arbitrary cells (via [fift](https://ton.org/docs/#/smart-contracts/?id=fift)/[tonweb](https://github.com/toncenter/tonweb)/[ton3](https://t.me/tonblockchain/121)/[ton(whales)](https://github.com/TONCommunity/ton)/[tongo](https://github.com/xssnick/tonutils-go)/[pytonlib](https://github.com/toncenter/pytonlib)), know how to compose internal messages and send messages to the network. It will be useful to know how to read tl-b notation.
+This contest is dedicated to finding vulnerabilities in smart-contracts. To be able to participate you need to have a couple of TON, know how to compose arbitrary cells (via [fift](https://ton.org/docs/#/smart-contracts/?id=fift)/[tonweb](https://github.com/toncenter/tonweb)/[ton3](https://t.me/tonblockchain/121)/[ton(whales)](https://github.com/TONCommunity/ton)/[tongo](https://github.com/xssnick/tonutils-go)/[pytonlib](https://github.com/toncenter/pytonlib)), know how to compose internal messages and send messages to the network. It will be useful to know how to read tl-b notation.
 
-Each contract contains major flow which allow to bypass intended logic and stole all funds.
+Each contract contains major flow which allows to bypass intended logic and stole all funds.
 
-There will two stages of contest:
+There will two stages of the contest:
 1. The first 5 contracts are revealed at the same time to hack. After all smart contracts of the first stage will be hacked, there will be a 15-minute break.
 2. The last 3 contracts will be revealed one by one: once a contract is hacked, there will be a 15-minute break and the address and info of the next smart contract will be revealed.
 
