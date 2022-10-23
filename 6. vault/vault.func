@@ -1,0 +1,55 @@
+#include "common.func";
+
+() recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
+	slice cs = in_msg_full.begin_parse();
+	cs~skip_bits(4);
+	slice sender_address = cs~load_msg_addr();
+
+	slice ds = get_data().begin_parse();
+	slice database_address = ds~load_msg_addr();
+
+	if (slice_data_equal?(sender_address, database_address)) {
+
+		int op = in_msg_body~load_uint(32);
+		int addr_hash = in_msg_body~load_uint(256);
+
+		int mode = null(); 
+		if (op == op_not_winner) {
+			mode = 64; ;; Refund remaining check-TONs
+			;; addr_hash corresponds to check requester
+		} else {
+			mode = 128; ;; Award the prize
+			;; addr_hash corresponds to the withdrawal address from the winning entry
+		}
+
+		var msg = begin_cell()
+			.store_uint(0x18, 6) ;; bounce - int_msg_info$0 ihr_disabled:Bool bounce:Bool bounced:Bool src:MsgAddress -> 011000
+			.store_std_addr(0, addr_hash)
+			.store_grams(0)
+			.store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1);
+		send_raw_message(msg.end_cell(), mode);
+	} else {
+	        if(in_msg_body~load_uint(32) | (~ slice_data_equal?(in_msg_body, "check"))) {
+	          return ();
+	        }
+	        
+		var (_, addr_hash) = parse_std_addr(sender_address);
+
+		var msg = begin_cell()
+			.store_uint(0x18, 6) ;; bounce - int_msg_info$0 ihr_disabled:Bool bounce:Bool bounced:Bool src:MsgAddress -> 011000
+			.store_slice(database_address)
+			.store_grams(0)
+			.store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+			.store_uint(addr_hash, 256);
+		send_raw_message(msg.end_cell(), 64);
+	}
+}
+
+;; Unused
+cell get_initial_storage(slice database_address) method_id(3333) {    
+	var initial_storage = begin_cell()
+		.store_slice(database_address)
+		.end_cell();
+
+	return initial_storage;
+}

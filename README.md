@@ -17,3 +17,9 @@ For almost all contracts their funC code will be available on reveal. Some, howe
 | 3. DAO | [EQAio2xuMYJqJZlXG4e1TeKpeWn976tcZTXybVKVIuphuoVy](https://tonwhales.com/explorer/address/EQAio2xuMYJqJZlXG4e1TeKpeWn976tcZTXybVKVIuphuoVy) |
 | 4. Lottery | [EQAb7oOzKXG31RD6Ob9O4tEbVebY2zJo5ARggkf-mWSyQb4M](https://dton.io/a/EQAb7oOzKXG31RD6Ob9O4tEbVebY2zJo5ARggkf-mWSyQb4M) |
 | 5. Wallet | [EQBe9ZblcnkpGklcpQni_O4Y1_YD-80FSTxF9kd8R53L2hIi](https://ton.cx/address/0QBe9ZblcnkpGklcpQni_O4Y1_YD-80FSTxF9kd8R53L2vRt) |
+
+
+# Stage 2
+|  Task   | Address |
+|--------------|---------------------------------------------|
+| 6. Vault | [EQB7QOtPKxZjgo6jDGTk9ZSvgkgZb8wys1-ptFZB2TXC3V3p](https://ton.cx/address/EQB7QOtPKxZjgo6jDGTk9ZSvgkgZb8wys1-ptFZB2TXC3V3p)      |

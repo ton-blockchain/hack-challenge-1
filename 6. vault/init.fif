@@ -1,0 +1,114 @@
+#!/usr/bin/fift -s
+"TonUtil.fif" include
+"Asm.fif" include
+
+{ ."Script for preparation Vault and Database contracts, one input parameter - owner address" cr ""abort } : usage
+
+$# dup 1 < swap 2 > or ' usage if
+1 :$1..n
+$1 =: owner_addr
+
+<{
+  SETCP0 ACCEPT
+  "database.fif" include PUSHREF SETCODE
+  0 PUSHINT
+}>s =: db_code
+
+
+<b
+// Vault default address: addr_none
+b{00} s, 
+
+// Admin address
+b{100} s,
+
+owner_addr
+$>smca 0= abort"bad address"
+drop // flag z
+addr,
+
+// Default registrations - empty dict
+b{0} s,
+
+b>
+=: db_storage
+
+
+<b b{00110} s, <b db_code s, b> ref, db_storage ref, b>
+=: db_state_init
+
+db_state_init
+
+hashu 0 swap 2constant db_address
+
+
+// ================================================================
+// Vault
+
+
+
+true =: bounce
+<{
+  SETCP0 ACCEPT
+  "vault.fif" include PUSHREF SETCODE
+  0 PUSHINT
+}>s =: vault_code
+
+<b
+// Database address
+b{100} s,
+
+db_address
+addr,
+
+// Not deployed
+b{0} s,
+b> .s
+=: vault_storage
+
+<b b{00110} s, <b vault_code s, b> ref, vault_storage ref, b>
+dup =: va_state_init
+
+dup hashu 0 swap 2constant vault_address
+."new vault address = " vault_address .addr cr
+
+."Non-bounceable address (for init): " vault_address 7 .Addr cr
+."Bounceable address (for later access): " vault_address 6 .Addr cr
+
+<b b> <s =: va_init_message
+<b b{1000100} s, vault_address addr, b{000010} s, va_state_init <s s, b{0} s, va_init_message s, b>
+2 boc+>B
+
+"query-init-vault.boc" tuck B>file
+."(Saved vault contract creating query to file " type .")" cr
+
+
+cr cr cr
+// ===========================================================
+// db again
+<b
+// Opcode - set_vault
+0x40404040 32 u,
+
+// Vault address
+b{100} s,
+
+vault_address
+addr,
+
+b> <s =: db_init_message
+
+."new database address = " db_address .addr cr
+
+."Non-bounceable address (for init): " db_address 7 .Addr cr
+."Bounceable address (for later access): " db_address 6 .Addr cr
+
+
+<b b{1000100} s, db_address addr, b{000010} s, db_state_init <s s, b{0} s, db_init_message s, b>
+2 boc+>B
+
+"query-init-database.boc" tuck B>file
+."(Saved db contract creating query to file " type .")" cr
+
+<b db_init_message s, b> 2 boc+>B "set-vault.boc" tuck B>file
+."set-vault.boc hould be sent to " db_address 7 .Addr cr

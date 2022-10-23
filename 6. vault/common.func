@@ -1,0 +1,16 @@
+int slice_data_equal? (slice a, slice b) asm "SDEQ";
+
+builder store_std_addr (builder b, int wc, int addr_hash) inline {
+	return b
+		.store_uint(4, 3)
+		.store_uint(wc, 8)
+		.store_uint(addr_hash, 256);
+}
+
+const int op_register = 0x55e28eea;
+const int op_set_winner = 0x1a22d3f4;
+const int op_set_vault = 0x40404040;
+const int op_not_winner = 0x88776655;
+const int op_winner = 0x2345123a;
+
+

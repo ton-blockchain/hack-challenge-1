@@ -1,0 +1,112 @@
+#include "common.func";
+
+(slice, slice, cell) load_data() {
+	slice ds = get_data().begin_parse();
+	slice vault_address = ds~load_msg_addr();
+	slice admin_address = ds~load_msg_addr();
+	cell db = ds~load_dict();
+
+	return (vault_address, admin_address, db);
+}
+
+() save_data(slice vault_address, slice admin_address, cell db) impure {
+	set_data(
+		begin_cell()
+		.store_slice(vault_address)
+		.store_slice(admin_address)
+		.store_dict(db)
+		.end_cell()
+	);
+}
+
+;; Responds to check-winner request
+() respond(slice dest, int op, int addr_hash) impure {
+	var msg = begin_cell()
+		.store_uint(0x18, 6)
+		.store_slice(dest)
+		.store_grams(0)
+		.store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+		.store_uint(op, 32)
+		.store_uint(addr_hash, 256);
+	send_raw_message(msg.end_cell(), 64);
+}
+
+() recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
+	slice cs = in_msg_full.begin_parse();
+	cs~skip_bits(4);
+	slice sender_address = cs~load_msg_addr();
+
+	var (vault_address, admin_address, db) = load_data();
+
+	if (slice_data_equal?(sender_address, vault_address)) {
+
+		int requester_addr_hash = in_msg_body~load_uint(256);
+
+		var (entry, f) = db.udict_get?(256, requester_addr_hash);
+
+		int winner = 0;
+		int award_addr_hash = null();
+		if (f) {
+			winner = entry~load_uint(1);
+			slice award_address = entry~load_msg_addr();
+			(_, award_addr_hash) = parse_std_addr(award_address);
+		}
+
+		if (winner) {
+			respond(vault_address, op_winner, award_addr_hash);
+		} else {
+			respond(vault_address, op_not_winner, requester_addr_hash);
+		}
+	} else {
+		int op = in_msg_body~load_uint(32);
+
+		if (op == op_register) {
+
+			slice withdrawal_address = in_msg_body~load_msg_addr();
+
+			var (_, sender_addr_hash) = parse_std_addr(sender_address);
+
+			db~udict_set_builder(
+				256, sender_addr_hash,
+				begin_cell()
+				.store_uint(0, 1) ;; not winner by default
+				.store_slice(withdrawal_address)
+			);
+		} elseif (op == op_set_winner) {
+
+			throw_unless(707, slice_data_equal?(sender_address, admin_address));
+
+			slice winner_address = in_msg_body~load_msg_addr();
+			var (_, winner_addr_hash) = parse_std_addr(winner_address);
+
+			var (entry, f) = db.udict_get?(256, winner_addr_hash);
+			entry~skip_bits(1);
+			slice withdrawal_address = entry~load_msg_addr();
+
+			db~udict_set_builder(
+				256, winner_addr_hash,
+				begin_cell()
+				.store_uint(1, 1) ;; this address wins
+				.store_slice(withdrawal_address)
+			);
+		} elseif (op == op_set_vault) {
+			throw_unless(808, slice_data_equal?(sender_address, admin_address));
+			vault_address = in_msg_body~load_msg_addr();
+		} else {
+			throw(1010);
+		}
+		save_data(vault_address, admin_address, db);
+	}
+}
+
+
+;; Unused
+cell get_initial_storage(slice admin_address) method_id(3333) {    
+	var initial_storage = begin_cell()
+		.store_std_addr(0, 0)
+		.store_slice(admin_address)
+		.store_dict(new_dict())
+		.end_cell();
+
+	return initial_storage;
+}
