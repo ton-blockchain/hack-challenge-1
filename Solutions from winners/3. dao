@@ -1,0 +1,1 @@
+Saw strange usage of int instead of uint in_msg_body~load_int(256), found that votes can be moved in reverse direction, moved votes to own wallet and proposed action to send out message.

@@ -1,0 +1,1 @@
+As there are no code execution branches, I wanted to find out way to skip authorize function. Then I've seen that it has not impure specifier and returns nothing, so sent request to pull money out.

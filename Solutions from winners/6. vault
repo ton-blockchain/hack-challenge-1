@@ -1,0 +1,6 @@
+1. Vault should send reward if the op is not the op_not_winner and the message is from the database.
+2. Vault does not have bounce handler
+3. Vault can proxy message to database if user sends “check”
+4. In database we can set msg_addr_none  as an award address cause load_msg_address allows it 
+5. We are requesting check from vault, database tries to parse msg_addr_none using parse_std_addr and fails
+6. Message bounces to the vault from database and the op is not op_not_winner

